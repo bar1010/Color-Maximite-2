@@ -1,78 +1,81 @@
 
-'3D Maze v3
+'3D Maze v3 with updated map view
 #include "colors.inc"
 option base 0
-dim integer width, height, done, i, view, drawn_maze, seed, sx, sy, d, f
-dim integer x, y, xt, yt, cx, cy, oldx, oldy, score, maxscore
-'m$(2285, 1145) is practically the largest allocatable maze size
+dim integer width, height, done, i, x, y, xt, yt, screen_drawn, drawn_maze, view
+dim integer xa, ya, xs, ys 'x and y locations in the array and on the screen
+dim integer oldxa, oldya, oldxs, oldys
+dim integer score, maxscore, d, f, seed, sx, sy
+dim integer xtlow, xthigh, ytlow, ythigh
+dim integer ybottom, screen, screenx, screeny, maxscreenx, maxscreeny
 dim string ch$ length 1 'Compass Heading
-dim string m$(497, 249) length 1
-dim string draw$ = "Y" length 1, wc$ length 1 = chr$(219) 'Wall character
-
+dim string m$(497, 249) length 1 'Maze array
+dim string draw$ = "Y" length 1
+dim string wc$ length 1 = chr$(219) 'Wall character
 cls : mode 1, 16 : color Indigo
 ? "Controls are Space Bar, M, and the four cursor keys."
-pause 4000 : cls
-width = 303 : height = 153 '101x51, width and height must be odd for the new algorithm
+pause 3000 : cls
 
-'-----------------------------------------------------------------------------------------
-'for x = 0 to width : for y = 0 to height : m$(x, y) = wc$ : next y : next x 
-'cx = int(rnd * (width - 1)) : cy = int(rnd * (height - 1)) 
-'if cx mod 2 = 0 then cx = cx + 1 :if cy mod 2 = 0 then cy = cy + 1 
-'m$(x, y) = " " : done = 0
-'do while done = 0
-'  for i = 0 to 99 : oldx = cx : oldy = cy        
-'    select case int(rnd * 4) 
-'      case 0 : if cx + 2 < width then cx = cx + 2
-'      case 1 : if cy + 2 < height then cy = cy + 2
-'      case 2 : if cx - 2 > 0 then cx = cx - 2
-'      case 3 : if cy - 2 > 0 then cy = cy - 2
-'    end select
-'    if m$(cx, cy) = wc$ then 
-'      m$(cx, cy) = " " : m$(int((cx + oldx) / 2), ((cy + oldy) / 2)) = " "
-'    endif
-'  next i
-'  done = 1 
-'  for x = 1 to width - 1 step 2 : for y = 1 to height - 1 step 2
-'    if m$(x, y) = wc$ then done = 0
-'  next y : next x
-'loop
-'-----------------------------------------------------------------------------------------
+'***************************
+width = 201 : height = 99   '101x51, 201x99, 301x149, width and height must be ODD
+'***************************
 
-'Can we convert to use a string array instead of an integer array within this code?
-10 seed = int(rnd * 1234567890)
-11 dim mg(width, height) 'would take this out
-12 for y = 1 to height  
-13 for x = 1 to width   
-14 mg(x, y) = 0 : next   'could be m$(x, y) = "0"
-15 mg(1, y) = 2 : mg(width, y) = 2  'could be = "2"
-16 next
-17 for x = 1 to width  
-18 mg(x, 1) = 2 : mg(x, height) = 2
-19 next : mg(3, 3) = 1  'could be = "1"
-20 f = ((width - 3) / 2) * ((height - 3) / 2) - 1
-21 for sy = 3 to height - 2 step 2
-22 for sx = 3 to width - 2 step 2
-23 gosub 27 : next : next
-24 if f > 0 goto 11
-25 mg(2, 3) = 1 : mg(width - 1, height - 2) = 1
-26 goto main:
-27 x = sx : y = sy
-28 if mg(x, y) <> 1 then return
-29 goto 41
-30 on d goto 33, 35, 37, 39
-31 if i = 4 then return
-32 d = ((d + 1) and 3) + 1 : i = i + 1 : goto 30
-33 if mg(x + 1, y) + mg(x + 2, y) goto 31  'could convert the strings to integers so can add
-34 mg(x + 1, y) = 1 : x = x + 2 : goto 41
-35 if mg(x - 1, y) + mg(x - 2, y) goto 31
-36 mg(x - 1, y) = 1 : x = x - 2 : goto 41
-37 if mg(x, y + 1) + mg(x, y + 2) goto 31
-38 mg(x, y + 1) = 1 : y = y + 2 : goto 41
-39 if mg(x, y - 1) + mg(x, y - 2) goto 31
-40 mg(x, y - 1) = 1 : y = y - 2
-41 i = 0 : d = int(rnd(seed) * 4) + 1
-42 if mg(x, y) = 0 then f = f - 1
-43 mg(x, y) = 1: goto 30
+seed = int(rnd * 1234567890)
+dim mg(width, height) 
+for y = 1 to height  
+  for x = 1 to width   
+    mg(x, y) = 0
+  next x   
+  mg(1, y) = 2 : mg(width, y) = 2  
+next y
+for x = 1 to width  
+  mg(x, 1) = 2 : mg(x, height) = 2
+next x
+mg(3, 3) = 1  
+f = ((width - 3) / 2) * ((height - 3) / 2) - 1
+
+TwentyOne: 
+for sy = 3 to height - 2 step 2
+  for sx = 3 to width - 2 step 2
+    gosub TwentySeven
+  next sx
+next sy
+if f > 0 goto TwentyOne
+mg(2, 3) = 1 : mg(width - 1, height - 2) = 1 : goto main
+ 
+TwentySeven:
+x = sx : y = sy
+if mg(x, y) <> 1 then return
+goto FourtyOne
+
+Thirty:
+on d goto ThirtyThree, ThirtyFive, ThirtySeven, ThirtyNine
+
+ThirtyOne:
+if i = 4 then return
+d = ((d + 1) and 3) + 1 : i = i + 1 : goto Thirty
+
+ThirtyThree:
+if mg(x + 1, y) + mg(x + 2, y) goto ThirtyOne
+mg(x + 1, y) = 1 : x = x + 2 : goto FourtyOne
+
+ThirtyFive:
+if mg(x - 1, y) + mg(x - 2, y) goto ThirtyOne
+mg(x - 1, y) = 1 : x = x - 2 : goto FourtyOne
+
+ThirtySeven:
+if mg(x, y + 1) + mg(x, y + 2) goto ThirtyOne
+mg(x, y + 1) = 1 : y = y + 2 : goto FourtyOne
+
+ThirtyNine:
+if mg(x, y - 1) + mg(x, y - 2) goto ThirtyOne
+mg(x, y - 1) = 1 : y = y - 2
+
+FourtyOne:
+i = 0 : d = int(rnd(seed) * 4) + 1
+if mg(x, y) = 0 then f = f - 1
+mg(x, y) = 1: goto Thirty
+
 'At this point we could change the "0"s and "2"s to wc$ and the "1"s to " "
 'With this change, we would only be allocating memory for ONE array instead of TWO 
 'and we would NOT need the nested loops below.
@@ -95,15 +98,11 @@ next y
 cls
 
 '-----------------------------------------------------------------------------------------
-'Draw the view starting looking South from the first available empty square at the
-'Northwestern most edge of the maze.  The exit will be the Southeastern most empty square.
-x = 1 'x = 0, y = 0 will always be a wall. x = 1, y = 1 will always be empty space
-y = 1 : view = 2 '2 for 2D, 3 for 3D
-ch$ = "S" : drawn_maze = 0 : score = 0 : maxscore = 0
-m$(1, 1) = "x"
-m$(width - 4, height - 4) = "d"
-'print width - 4, height - 4  '17, 11
-
+xa = 1 : ya = 1 : xs = 1 : ys = 1 : view = 2 '2 for 2D 
+oldxa = xa : oldya = ya : oldxs = xs : oldys = ys
+score = 0 : maxscore = 0
+screen_drawn = 0 : m$(1, 1) = "x" : ch$ = "S"
+drawn_maze = 0 : m$(width - 4, height - 4) = "d"
 
 'fill maze empty squares with dots
 for yt = 0 to height - 3
@@ -115,178 +114,259 @@ for yt = 0 to height - 3
   next xt
 next yt
 
+calculate()
 draw_2d_maze()
 
 do
-  if keydown(0) = 1 then 'user presses just one key
-    if keydown(1) = 32 then ' User presses space bar
-      view = 3
-      draw_3d_maze() 'redraw view
-    elseif keydown(1) = 130 then 'User presses cursor left key
-      if view = 3 then
-        select case ch$
-          case "N"
-            ch$ = "W" 
-          case "W"
-            ch$ = "S" 
-          case "S"
-            ch$ = "E" 
-          case "E"
-            ch$ = "N" 
-        end select
-        draw_3d_maze()
-      else 'view = 2
-        if m$(x - 1, y) <> wc$ then
-          if m$(x - 1, y) = "." then score = score + 1
-          oldx = x : oldy = y : m$(x - 1, y) = "x" : m$(x, y) = " "
-          x = x - 1 : draw_2d_maze()
+  if keydown(1) = 32 then ' User presses space bar
+    view = 3
+    m$(1, 1) = "u"  
+    m$(width - 4, height - 4) = "d"
+    draw_3d_maze() 
+  elseif keydown(1) = 130 then 'User presses cursor left key
+    if view = 3 then
+      select case ch$
+        case "N"
+          ch$ = "W" 
+        case "W"
+          ch$ = "S" 
+        case "S"
+          ch$ = "E" 
+        case "E"
+          ch$ = "N" 
+      end select
+      draw_3d_maze()
+    else 'view = 2
+      if m$(xa - 1, ya) <> wc$ then
+        if m$(xa - 1, ya) = "." then
+          score = score + 1
         endif
-      endif
-    elseif keydown(1) = 131 then 'User presses cursor right key
-      if view = 3 then
-        select case ch$
-          case "N"
-            ch$ = "E" 
-          case "E"
-            ch$ = "S" 
-          case "S"
-            ch$ = "W" 
-          case "W"
-            ch$ = "N" 
-        end select
-        draw_3d_maze()
-      else 'view = 2
-        if m$(x + 1, y) <> wc$ then
-          if m$(x + 1, y) = "." then score = score + 1
-          oldx = x : oldy = y : m$(x + 1, y) = "x" : m$(x, y) = " "
-          x = x + 1 : draw_2d_maze()
+        oldxs = xs : oldys = ys : oldxa = xa : oldya = ya 
+        m$(xa - 1, ya) = "x" : m$(xa, ya) = " "
+        xs = xs - 1 : xa = xa - 1
+        if xs < 0 then
+          xs = 99 : screen_drawn = 0 : drawn_maze = 0
         endif
-      endif
-    elseif keydown(1) = 128 then 'User presses the cursor forward key
-      if view = 3 then
-        select case ch$
-          case "W"
-            if m$(x - 1, y) <> wc$ then 'There is NO wall blocking the path
-              if m$(x - 1, y) = "." then score = score + 1
-              m$(x - 1, y) = "x" 'Update the location of the user
-              m$(x, y) = " " 'Reset the former loccation of the user to empty cell 'deal with ladder
-              x = x - 1 
-            endif
-          case "E"
-            if m$(x + 1, y) <> wc$ then 
-              if m$(x + 1, y) = "." then score = score + 1
-              m$(x + 1, y) = "x"    
-              m$(x, y) = " "
-              x = x + 1
-            endif
-          case "N"
-            if m$(x, y - 1) <> wc$ then 
-              if m$(x, y - 1) = "." then score = score + 1
-              m$(x, y - 1) = "x"
-              m$(x, y) = " " 
-              y = y - 1
-            endif
-          case "S"
-            if m$(x, y + 1) <> wc$ then
-              if m$(x, y + 1) = "." then score = score + 1
-              m$(x, y + 1) = "x"
-              m$(x, y) = " "
-              y = y + 1
-            endif
-        end select
-        if m$(1, 1) = " " then m$(1, 1) = "u"
-        if m$(width - 4, height - 4) = " " then m$(width - 4, height - 4) = "d"
-        draw_3d_maze() 
-      else 'view = 2
-        if m$(x, y - 1 ) <> wc$ then
-          if m$(x, y - 1) = "." then score = score + 1
-          oldx = x : oldy = y : m$(x, y - 1) = "x" : m$(x, y) = " "
-          y = y - 1 : draw_2d_maze()
-        endif
-      endif
-    elseif keydown(1) = 129 then 'User presses the cursor backward key
-      if view = 3 then
-        select case ch$
-          case "W"
-            if m$(x + 1, y) <> wc$ then
-              if m$(x + 1, y) = "." then score = score + 1
-              m$(x + 1, y ) = "x" : m$(x, y) = " " : x = x + 1
-            endif
-          case "E"
-            if m$(x - 1, y) <> wc$ then 
-              if m$(x + 1, y) = "." then score = score + 1
-              m$(x - 1, y) = "x" : m$(x, y) = " " : x = x - 1
-            endif
-          case "N"
-            if m$(x, y + 1) <> wc$ then 
-              if m$(x + 1, y) = "." then score = score + 1
-              m$(x, y + 1) = "x" : m$(x, y) = " " : y = y + 1
-            endif
-          case "S"
-            if m$(x, y - 1) <> wc$ then  
-              if m$(x + 1, y) = "." then score = score + 1
-              m$(x, y - 1) = "x" : m$(x, y) = " " : y = y - 1
-            endif
-        end select 
-        if m$(1, 1) = " " then m$(1, 1) = "u"
-        if m$(width - 4, height - 4) = " " then m$(width - 4, height - 4) = "d"
-        draw_3d_maze() 
-      else ' view = 2
-        if m$(x, y + 1) <> wc$ then
-          if m$(x, y + 1) = "." then score = score + 1
-          oldx = x : oldy = y : m$(x, y + 1) = "x" : m$(x, y) = " "
-          y = y + 1 : draw_2d_maze()
-        endif
-      endif
-    elseif keydown(1) = 109 then 'user presses M key to see the map / top view of the maze
-      if view = 3 then
-        view = 2
-        cls
         draw_2d_maze()
       endif
+    endif
+  elseif keydown(1) = 131 then 'User presses cursor right key
+    if view = 3 then
+      select case ch$
+        case "N"
+          ch$ = "E" 
+        case "E"
+          ch$ = "S" 
+        case "S"
+          ch$ = "W" 
+        case "W"
+          ch$ = "N" 
+      end select
+      draw_3d_maze()
+    else 'view = 2
+      if m$(xa + 1, ya) <> wc$ then
+        if m$(xa + 1, ya) = "." then
+          score = score + 1
+        endif
+        oldxs = xs : oldys = ys : oldxa = xa : oldya = ya
+        m$(xa + 1, ya) = "x" : m$(xa, ya) = " "
+        xs = xs + 1 : xa = xa + 1 
+        if xs = 100 then 'was 99
+          xs = 0 : screen_drawn = 0 : drawn_maze = 0
+        endif
+        draw_2d_maze()
+      endif
+    endif
+  elseif keydown(1) = 128 then 'User presses the cursor forward key
+    if view = 3 then
+      select case ch$
+        case "W"
+          if m$(xa - 1, ya) <> wc$ then 'There is NO wall blocking the path
+          if m$(xa - 1, ya) = "." then score = score + 1
+            m$(xa - 1, ya) = "x" 'Update the location of the user
+            m$(xa, ya) = " " 'Reset the former loccation of the user to empty cell 'deal with ladder
+            xs = xs - 1 : xa = xa - 1 
+          endif
+        case "E"
+          if m$(xa + 1, ya) <> wc$ then 
+            if m$(xa + 1, ya) = "." then score = score + 1
+            m$(xa + 1, ya) = "x" : m$(xa, ya) = " "
+            xs = xs + 1 : xa = xa + 1
+          endif
+        case "N"
+          if m$(xa, ya - 1) <> wc$ then 
+            if m$(xa, ya - 1) = "." then score = score + 1
+            m$(xa, ya - 1) = "x" : m$(xa, ya) = " " 
+            ys = ys - 1 : ya = ya - 1
+          endif
+        case "S"
+          if m$(xa, ya + 1) <> wc$ then
+            if m$(xa, ya + 1) = "." then score = score + 1
+            m$(xa, ya + 1) = "x" : m$(xa, ya) = " "
+            ys = ys + 1 : ya = ya + 1
+          endif
+      end select
+      if m$(1, 1) = " " then m$(1, 1) = "u"
+      if m$(width - 4, height - 4) = " " then m$(width - 4, height - 4) = "d"
+      draw_3d_maze() 
+    else 'view = 2
+      if m$(xa, ya - 1 ) <> wc$ then
+        if m$(xa, ya - 1) = "." then
+          score = score + 1
+        endif
+        oldxs = xs : oldys = ys : oldxa = xa : oldya = ya
+        m$(xa, ya - 1) = "x" : m$(xa, ya) = " "
+        ys = ys - 1 : ya = ya - 1
+        if ys < 0 then
+          ys = 48 : screen_drawn = 0 : drawn_maze = 0
+        endif
+        draw_2d_maze()
+      endif
+    endif
+  elseif keydown(1) = 129 then 'User presses the cursor backward key
+    if view = 3 then
+      select case ch$
+        case "W"
+          if m$(xa + 1, ya) <> wc$ then
+            if m$(xa + 1, ya) = "." then score = score + 1
+            m$(xa + 1, ya) = "x" : m$(xa, ya) = " "
+            xs = xs + 1 : xa = xa + 1
+          endif
+        case "E"
+          if m$(xa - 1, ya) <> wc$ then 
+            if m$(xa + 1, ya) = "." then score = score + 1
+            m$(xa - 1, ya) = "x" : m$(xa, ya) = " "
+            xs = xs - 1 : xa = xa - 1
+          endif
+        case "N"
+          if m$(xa, ya + 1) <> wc$ then 
+            if m$(xa + 1, ya) = "." then score = score + 1
+            m$(xa, ya + 1) = "x" : m$(xa, ya) = " "
+            ys = ys + 1 : ya = ya + 1
+          endif
+        case "S"
+          if m$(xa, ya - 1) <> wc$ then  
+            if m$(xa + 1, ya) = "." then score = score + 1
+            m$(xa, ya - 1) = "x" : m$(xa, ya) = " "
+            ys = ys - 1 : ya = ya - 1
+          endif
+      end select 
+      if m$(1, 1) = " " then m$(1, 1) = "u"
+      if m$(width - 4, height - 4) = " " then m$(width - 4, height - 4) = "d"
+      draw_3d_maze() 
+    else ' view = 2
+      if m$(xa, ya + 1) <> wc$ then
+        if m$(xa, ya + 1) = "." then
+          score = score + 1
+        endif
+        oldxs = xs : oldys = ys : oldxa = xa : oldya = ya
+        m$(xa, ya + 1) = "x" : m$(xa, ya) = " "
+        ys = ys + 1 : ya = ya + 1 
+        if ys > 48 then
+          ys = 0 : screen_drawn = 0 : drawn_maze = 0
+        endif
+        draw_2d_maze()
+      endif
+    endif
+  elseif keydown(1) = 109 then 'user presses M key to see the map / top view of the maze
+    if view = 3 then
+      view = 2 : screen_drawn = 0 : drawn_maze = 0 : draw_2d_maze()
     endif
   endif
 loop
 
+sub calculate 
+  maxscreenx = fix((width - 1) / 100) + 1 
+  maxscreeny = fix((height - 2) / 49) + 1
+end sub
+
 sub draw_2d_maze
-  'cls
-  if drawn_maze = 0 then
-    for yt = 0 to height - 3
-      for xt = 0 to width - 3
-        if m$(xt, yt) = "x" then 'x represents the user's location within the maze
-          color Yellow
-          select case ch$
-            case "N"
-              print chr$(146); 'show the arrow pointing North character
-            case "S"
-              print chr$(147);
-            case "E"
-              print chr$(148);
-            case "W"
-              print chr$(149);
-          end select
-          color Indigo
-        else 'not the user's location
-          if m$(xt, yt) = wc$ then
-            color Indigo : print m$(xt, yt);
-          else
-            color Yellow : print m$(xt, yt);
-          endif
+  if screen_drawn = 0 and drawn_maze = 0 then 'just need one variable here
+    cls
+    screenx = fix(xa / 100) + 1
+    screeny = fix(ya / 49) + 1
+    ytlow = (screeny - 1 ) * 49
+    ythigh = ytlow + 48
+    xtlow = (screenx - 1 ) * 100
+    xthigh = xtlow + 99
+    ytbottom = screeny * 48
+
+    m$(1, 1) = "u"  
+    m$(width - 4, height - 4) = "d"
+
+    for yt = ytlow to ythigh
+      for xt = xtlow to xthigh
+        if m$(xt, yt) <> "x" and m$(xt, yt) <> "u" and m$(xt, yt) <> "d" then
+          print m$(xt, yt); 'prints ONE character
+        else
+          color Yellow : print m$(xt, yt); : color Indigo
         endif
       next xt
-      print
+      if yt <> ybottom or yt = 0 then 'yt = 0 workaround to fix a bug
+        print 'go to the next line
+      endif
     next yt
-    drawn_maze = 1
-    do : loop while inkey$ = "" 'wait for user to press a key
-  else 'maze has already been drawn = drawn_maze = 1
+
     color Yellow
-    print @(x * 8, y * 12)"x" 'draw current location of user
-    print @(oldx * 8, oldy * 12)" "
-    print @(8, 12)"u" 'the up ladder
-    print @((width - 4) * 8, (height - 4) * 12)"d" 'the down ladder
-    do : loop while inkey$ = "" 'wait for user to press a key
+    print @(9 * 8, 49 * 12) "Score =";score;
+    color Indigo
+    screen_drawn = 1
+    drawn_maze = 1
+    pause 64
+  else 'maze has already been drawn
+    color Yellow
+    print @(xs * 8, ys * 12)"x"; 'draw current location of player
+    if abs(xs - oldxs) < 2 and abs(ys - oldys) < 2 then 'added to fix a bug
+      print@(oldxs * 8, oldys * 12)" ";
+    endif
+    if xa < 100 and ya < 49 then
+      print @(8, 12)"u"; 'the up ladder
+    end if
+    print @(16 * 8, 49 * 12) score;
+    color Indigo
+    pause 64
   endif
 end sub
+
+
+'  if drawn_maze = 0 then
+'    for yt = 0 to height - 3
+'      for xt = 0 to width - 3
+'        if m$(xt, yt) = "x" then 'x represents the user's location within the maze
+'          color Yellow
+'          select case ch$
+'            case "N"
+'              print chr$(146); 'show the arrow pointing North character
+'            case "S"
+'              print chr$(147);
+'            case "E"
+'              print chr$(148);
+'            case "W"
+'              print chr$(149);
+'          end select
+'         color Indigo
+'        else 'not the user's location
+'         if m$(xt, yt) = wc$ then
+'            color Indigo : print m$(xt, yt);
+'          else
+'            color Yellow : print m$(xt, yt);
+'          endif
+'        endif
+'      next xt
+'      print
+'    next yt
+'    drawn_maze = 1
+'    do : loop while inkey$ = "" 'wait for user to press a key
+'  else 'maze has already been drawn = drawn_maze = 1
+'    color Yellow
+'    print @(x * 8, y * 12)"x" 'draw current location of user
+'    print @(oldx * 8, oldy * 12)" "
+'    print @(8, 12)"u" 'the up ladder
+'    print @((width - 4) * 8, (height - 4) * 12)"d" 'the down ladder
+'    do : loop while inkey$ = "" 'wait for user to press a key
+'  endif
+'end sub
+
 
 sub draw_3d_maze
   cls
@@ -294,13 +374,13 @@ sub draw_3d_maze
   '0 distant, cube in which the user is standing
   select case ch$
     case "N"
-      xt = x : yt = y - 1
+      xt = xa : yt = ya - 1
     case "S" 
-      xt = x : yt = y + 1
+      xt = xa : yt = ya + 1
     case "W"
-      xt = x - 1 : yt = y
+      xt = xa - 1 : yt = ya
     case "E"
-      xt = x + 1 : yt = y
+      xt = xa + 1 : yt = ya
   end select
   if m$(xt, yt) = "." then circle 399, 525, 32
   if m$(xt, yt) = "u" or m$(xt, yt) = "d" then 
@@ -341,13 +421,13 @@ sub draw_3d_maze
   if draw$ = "Y" then
     select case ch$
       case "N"
-        xt = x - 1 : yt = y - 1        
+        xt = xa - 1 : yt = ya - 1        
       case "S"
-        xt = x + 1 : yt = y + 1
+        xt = xa + 1 : yt = ya + 1
       case "W"  
-        xt = x - 1 : yt = y + 1
+        xt = xa - 1 : yt = ya + 1
       case "E"
-        xt = x + 1 : yt = y - 1
+        xt = xa + 1 : yt = ya - 1
     end select
     if m$(xt, yt) = wc$ then
       line   0,   0, 200, 150 '1DUL
@@ -356,13 +436,13 @@ sub draw_3d_maze
 
     select case ch$
       case "N"
-        xt = x + 1 : yt = y - 1
+        xt = xa + 1 : yt = ya - 1
       case "S"
-        xt = x - 1 : yt = y + 1
+        xt = xa - 1 : yt = ya + 1
       case "W"
-        xt = x - 1 : yt = y - 1
+        xt = xa - 1 : yt = ya - 1
       case "E"
-        xt = x + 1 : yt = y + 1
+        xt = xa + 1 : yt = ya + 1
     end select
     if m$(xt, yt) = wc$ then
       line 799,   0, 600, 150 '1DUR
@@ -371,13 +451,13 @@ sub draw_3d_maze
 
     select case ch$
       case "N"
-        xt = x : yt = y - 2 
+        xt = xa : yt = ya - 2 
       case "S"
-        xt = x : yt = y + 2
+        xt = xa : yt = ya + 2
       case "W"
-        xt = x - 2 : yt = y
+        xt = xa - 2 : yt = ya
       case "E"
-        xt = x + 2 : yt = y
+        xt = xa + 2 : yt = ya
     end select
     if m$(xt, yt) = "." then circle 399, 413, 16
     if m$(xt, yt) = "u" or m$(xt, yt) = "d" then 
@@ -415,13 +495,13 @@ sub draw_3d_maze
 
     select case ch$
       case "N"
-        xt = x - 1 : yt = y - 1
+        xt = xa - 1 : yt = ya - 1
       case "S"
-        xt = x + 1 : yt = y + 1
+        xt = xa + 1 : yt = ya + 1
       case "W"
-        xt = x - 1 : yt = y + 1 
+        xt = xa - 1 : yt = ya + 1 
       case "E"
-        xt = x + 1 : yt = y - 1
+        xt = xa + 1 : yt = ya - 1
     end select
     if m$(xt, yt) <> wc$ then 
       line 200, 150,   0, 150 '1TL 
@@ -430,13 +510,13 @@ sub draw_3d_maze
 
     select case ch$
       case "N"
-        xt = x + 1 : yt = y - 1
+        xt = xa + 1 : yt = ya - 1
       case "S"
-        xt = x - 1 : yt = y + 1
+        xt = xa - 1 : yt = ya + 1
       case "W"
-        xt = x - 1 : yt = y - 1
+        xt = xa - 1 : yt = ya - 1
       case "E"
-        xt = x + 1 : yt = y + 1
+        xt = xa + 1 : yt = ya + 1
     end select  
     if m$(xt, yt) <> wc$ then 
       line 600, 150, 799, 150 '1TR
@@ -448,13 +528,13 @@ sub draw_3d_maze
   if draw$ = "Y" then
     select case ch$
       case "N"
-        xt = x - 1 : yt = y - 2
+        xt = xa - 1 : yt = ya - 2
       case "S"
-        xt = x + 1 : yt = y + 2
+        xt = xa + 1 : yt = ya + 2
       case "W"
-        xt = x - 2 : yt = y + 1
+        xt = xa - 2 : yt = ya + 1
       case "E"
-        xt = x + 2 : yt = y - 1
+        xt = xa + 2 : yt = ya - 1
     end select
     if m$(xt, yt) = wc$ then
       line 200, 150, 300, 225 '2DUL
@@ -463,13 +543,13 @@ sub draw_3d_maze
 
     select case ch$
       case "N"
-        xt = x + 1 : yt = y - 2
+        xt = xa + 1 : yt = ya - 2
       case "S"
-        xt = x - 1 : yt = y + 2
+        xt = xa - 1 : yt = ya + 2
       case "W"
-        xt = x - 2 : yt = y - 1
+        xt = xa - 2 : yt = ya - 1
       case "E"
-        xt = x + 2 : yt = y + 1
+        xt = xa + 2 : yt = ya + 1
     end select
     if m$(xt, yt) = wc$ then
       line 600, 150, 500, 225 '2DUR
@@ -478,13 +558,13 @@ sub draw_3d_maze
 
     select case ch$
       case "N"
-        xt = x : yt = y - 3
+        xt = xa : yt = ya - 3
       case "S"
-        xt = x : yt = y + 3
+        xt = xa : yt = ya + 3
       case "W"
-        xt = x - 3 : yt = y
+        xt = xa - 3 : yt = ya
       case "E"
-        xt = x + 3 : yt = y
+        xt = xa + 3 : yt = ya
     end select
     if m$(xt, yt) = "." then circle 399, 356, 8
     if m$(xt, yt) = "u" or m$(xt, yt) = "d" then 
@@ -522,13 +602,13 @@ sub draw_3d_maze
 
     select case ch$
       case "N"
-        xt = x - 1 : yt = y - 2
+        xt = xa - 1 : yt = ya - 2
       case "S"
-        xt = x + 1 : yt = y + 2
+        xt = xa + 1 : yt = ya + 2
       case "W"
-        xt = x - 2 : yt = y + 1
+        xt = xa - 2 : yt = ya + 1
       case "E"
-        xt = x + 2 : yt = y - 1  
+        xt = xa + 2 : yt = ya - 1  
     end select
     if m$(xt, yt) <> wc$ then
       line 300, 225, 200, 225 '2TL
@@ -537,13 +617,13 @@ sub draw_3d_maze
 
     select case ch$
       case "N"
-        xt = x + 1 : yt = y - 2
+        xt = xa + 1 : yt = ya - 2
       case "S"
-        xt = x - 1 : yt = y + 2
+        xt = xa - 1 : yt = ya + 2
       case "W"
-        xt = x - 2 : yt = y - 1
+        xt = xa - 2 : yt = ya - 1
       case "E"
-        xt = x + 2 : yt = y + 1
+        xt = xa + 2 : yt = ya + 1
     end select    
     if m$(xt, yt) <> wc$ then
       line 500, 225, 600, 225 '2TR
@@ -555,13 +635,13 @@ sub draw_3d_maze
   if draw$ = "Y" then
     select case ch$
       case "N"
-        xt = x - 1 : yt = y - 3
+        xt = xa - 1 : yt = ya - 3
       case "S"
-        xt = x + 1 : yt = y + 3
+        xt = xa + 1 : yt = ya + 3
       case "W"
-        xt = x - 3 : yt = y + 1
+        xt = xa - 3 : yt = ya + 1
       case "E"
-        xt = x + 3 : yt = y - 1
+        xt = xa + 3 : yt = ya - 1
     end select
     if m$(xt, yt) = wc$ then
       line 300, 225, 350, 262 '3DUL
@@ -570,13 +650,13 @@ sub draw_3d_maze
 
     select case ch$
       case "N"
-        xt = x + 1 : yt = y - 3
+        xt = xa + 1 : yt = ya - 3
       case "S"
-        xt = x - 1 : yt = y + 3
+        xt = xa - 1 : yt = ya + 3
       case "W"
-        xt = x - 3 : yt = y - 1
+        xt = xa - 3 : yt = ya - 1
       case "E"
-        xt = x + 3 : yt = y + 1
+        xt = xa + 3 : yt = ya + 1
     end select
     if m$(xt, yt) = wc$ then
       line 500, 225, 450, 262 '3DUR
@@ -585,13 +665,13 @@ sub draw_3d_maze
 
     select case ch$
       case "N"
-        xt = x : yt = y - 4
+        xt = xa : yt = ya - 4
       case "S"
-        xt = x : yt = y + 4
+        xt = xa : yt = ya + 4
       case "W"
-        xt = x - 4 : yt = y
+        xt = xa - 4 : yt = ya
       case "E"
-        xt = x + 4 : yt = y
+        xt = xa + 4 : yt = ya
     end select        
     if m$(xt, yt) = "." then circle 399, 328, 4
     if m$(xt, yt) = "u" or m$(xt, yt) = "d" then 
@@ -629,13 +709,13 @@ sub draw_3d_maze
 
     select case ch$
       case "N"
-        xt = x - 1 : yt = y - 3
+        xt = xa - 1 : yt = ya - 3
       case "S"
-        xt = x + 1 : yt = y + 3
+        xt = xa + 1 : yt = ya + 3
       case "W"
-        xt = x - 3 : yt = y + 1
+        xt = xa - 3 : yt = ya + 1
       case "E"
-        xt = x + 3 : yt = y - 1
+        xt = xa + 3 : yt = ya - 1
     end select
     if m$(xt, yt) <> wc$ then
       line 350, 262, 300, 262 '3TL 
@@ -644,13 +724,13 @@ sub draw_3d_maze
 
     select case ch$
       case "N"
-        xt = x + 1 : yt = y - 3
+        xt = xa + 1 : yt = ya - 3
       case "S"
-        xt = x - 1 : yt = y + 3
+        xt = xa - 1 : yt = ya + 3
       case "W"
-        xt = x - 3 : yt = y - 1
+        xt = xa - 3 : yt = ya - 1
       case "E"
-        xt = x + 3 : yt = y + 1
+        xt = xa + 3 : yt = ya + 1
     end select    
     if m$(xt, yt) <> wc$ then
       line 450, 262, 500, 262 '3TR
@@ -662,13 +742,13 @@ sub draw_3d_maze
   if draw$ = "Y" then
     select case ch$
       case "N"
-        xt = x - 1 : yt = y - 4
+        xt = xa - 1 : yt = ya - 4
       case "S"
-        xt = x + 1 : yt = y + 4
+        xt = xa + 1 : yt = ya + 4
       case "W"
-        xt = x - 4 : yt = y + 1
+        xt = xa - 4 : yt = ya + 1
       case "E"
-        xt = x + 4 : yt = y - 1
+        xt = xa + 4 : yt = ya - 1
     end select
     if m$(xt, yt) = wc$ then
       line 350, 262, 375, 281 '4DUL
@@ -677,13 +757,13 @@ sub draw_3d_maze
 
     select case ch$
       case "N"
-        xt = x + 1 : yt = y - 4
+        xt = xa + 1 : yt = ya - 4
       case "S"
-        xt = x - 1 : yt = y + 4
+        xt = xa - 1 : yt = ya + 4
       case "W"
-        xt = x - 4 : yt = y - 1
+        xt = xa - 4 : yt = ya - 1
       case "E"
-        xt = x + 4 : yt = y + 1
+        xt = xa + 4 : yt = ya + 1
     end select
     if m$(xt, yt) = wc$ then
       line 450, 262, 425, 281 '4DUR
@@ -692,13 +772,13 @@ sub draw_3d_maze
 
     select case ch$
       case "N"
-        xt = x : yt = y - 5
+        xt = xa : yt = ya - 5
       case "S"
-        xt = x : yt = y + 5
+        xt = xa : yt = ya + 5
       case "W"
-        xt = x - 5 : yt = y
+        xt = xa - 5 : yt = ya
       case "E"
-        xt = x + 5 : yt = y
+        xt = xa + 5 : yt = ya
     end select        
     if m$(xt, yt) = "." then circle 399, 314, 2
     if m$(xt, yt) = "u" or m$(xt, yt) = "d" then 
@@ -736,13 +816,13 @@ sub draw_3d_maze
 
     select case ch$
       case "N"
-        xt = x - 1 : yt = y - 4
+        xt = xa - 1 : yt = ya - 4
       case "S"
-        xt = x + 1 : yt = y + 4
+        xt = xa + 1 : yt = ya + 4
       case "W"
-        xt = x - 4 : yt = y + 1
+        xt = xa - 4 : yt = ya + 1
       case "E"
-        xt = x + 4 : yt = y - 1
+        xt = xa + 4 : yt = ya - 1
     end select
     if m$(xt, yt) <> wc$ then
       line 375, 281, 350, 281 '4TL
@@ -751,13 +831,13 @@ sub draw_3d_maze
 
     select case ch$
       case "N"
-        xt = x + 1 : yt = y - 4
+        xt = xa + 1 : yt = ya - 4
       case "S"
-        xt = x - 1 : yt = y + 4
+        xt = xa - 1 : yt = ya + 4
       case "W"
-        xt = x - 4 : yt = y - 1
+        xt = xa - 4 : yt = ya - 1
       case "E"
-        xt = x + 4 : yt = y + 1
+        xt = xa + 4 : yt = ya + 1
     end select    
     if m$(xt, yt) <> wc$ then
       line 425, 281, 450, 281 '4TR
@@ -769,13 +849,13 @@ sub draw_3d_maze
   if draw$ = "Y" then
     select case ch$
       case "N"
-        xt = x - 1 : yt = y - 5
+        xt = xa - 1 : yt = ya - 5
       case "S"
-        xt = x + 1 : yt = y + 5
+        xt = xa + 1 : yt = ya + 5
       case "W"
-        xt = x - 5 : yt = y + 1
+        xt = xa - 5 : yt = ya + 1
       case "E"
-        xt = x + 5 : yt = y - 1
+        xt = xa + 5 : yt = ya - 1
     end select
     if m$(xt, yt) = wc$ then
       line 375, 281, 387, 290 '5DUL
@@ -784,13 +864,13 @@ sub draw_3d_maze
 
     select case ch$
       case "N"
-        xt = x + 1 : yt = y - 5
+        xt = xa + 1 : yt = ya - 5
       case "S"
-        xt = x - 1 : yt = y + 5
+        xt = xa - 1 : yt = ya + 5
       case "W"
-        xt = x - 5 : yt = y - 1
+        xt = xa - 5 : yt = ya - 1
       case "E"
-        xt = x + 5 : yt = y + 1
+        xt = xa + 5 : yt = ya + 1
     end select
     if m$(xt, yt) = wc$ then
       line 425, 281, 413, 290 '5DUR
@@ -799,13 +879,13 @@ sub draw_3d_maze
 
     select case ch$
       case "N"
-        xt = x : yt = y - 6
+        xt = xa : yt = ya - 6
       case "S"
-        xt = x : yt = y + 6
+        xt = xa : yt = ya + 6
       case "W"
-        xt = x - 6 : yt = y
+        xt = xa - 6 : yt = ya
       case "E"
-        xt = x + 6 : yt = y
+        xt = xa + 6 : yt = ya
     end select        
     if m$(xt, yt) = "." then circle 399, 308, 1
     if m$(xt, yt) = "u" or m$(xt, yt) = "d" then 
@@ -843,13 +923,13 @@ sub draw_3d_maze
 
     select case ch$
       case "N"
-        xt = x - 1 : yt = y - 5
+        xt = xa - 1 : yt = ya - 5
       case "S"
-        xt = x + 1 : yt = y + 5
+        xt = xa + 1 : yt = ya + 5
       case "W"
-        xt = x - 5 : yt = y + 1
+        xt = xa - 5 : yt = ya + 1
       case "E"
-        xt = x + 5 : yt = y - 1
+        xt = xa + 5 : yt = ya - 1
     end select
     if m$(xt, yt) <> wc$ then
       line 387, 290, 375, 290 '5TL
@@ -858,13 +938,13 @@ sub draw_3d_maze
 
     select case ch$
       case "N"
-        xt = x + 1 : yt = y - 5
+        xt = xa + 1 : yt = ya - 5
       case "S"
-        xt = x - 1 : yt = y + 5
+        xt = xa - 1 : yt = ya + 5
       case "W"
-        xt = x - 5 : yt = y - 1
+        xt = xa - 5 : yt = ya - 1
       case "E"
-        xt = x + 5 : yt = y + 1
+        xt = xa + 5 : yt = ya + 1
     end select    
     if m$(xt, yt) <> wc$ then
       line 413, 290, 425, 290 '5TR
@@ -876,13 +956,13 @@ sub draw_3d_maze
   if draw$ = "Y" then
     select case ch$
       case "N"
-        xt = x - 1 : yt = y - 6
+        xt = xa - 1 : yt = ya - 6
       case "S"
-        xt = x + 1 : yt = y + 6
+        xt = xa + 1 : yt = ya + 6
       case "W"
-        xt = x - 6 : yt = y + 1
+        xt = xa - 6 : yt = ya + 1
       case "E"
-        xt = x + 6 : yt = y - 1
+        xt = xa + 6 : yt = ya - 1
     end select
     if m$(xt, yt) = wc$ then
       line 387, 290, 393, 295 '6DUL
@@ -891,13 +971,13 @@ sub draw_3d_maze
 
     select case ch$
       case "N"
-        xt = x + 1 : yt = y - 6
+        xt = xa + 1 : yt = ya - 6
       case "S"
-        xt = x - 1 : yt = y + 6
+        xt = xa - 1 : yt = ya + 6
       case "W"
-        xt = x - 6 : yt = y - 1
+        xt = xa - 6 : yt = ya - 1
       case "E"
-        xt = x + 6 : yt = y + 1
+        xt = xa + 6 : yt = ya + 1
     end select
     if m$(xt, yt) = wc$ then
       line 413, 290, 407, 295 '6DUR
@@ -906,13 +986,13 @@ sub draw_3d_maze
 
     select case ch$
       case "N"
-        xt = x : yt = y - 7
+        xt = xa : yt = ya - 7
       case "S"
-        xt = x : yt = y + 7
+        xt = xa : yt = ya + 7
       case "W"
-        xt = x - 7 : yt = y
+        xt = xa - 7 : yt = ya
       case "E"
-        xt = x + 7 : yt = y
+        xt = xa + 7 : yt = ya
     end select        
     if m$(xt, yt) = "." then circle 399, 304, 1
     if m$(xt, yt) = "u" or m$(xt, yt) = "d" then 
@@ -950,13 +1030,13 @@ sub draw_3d_maze
 
     select case ch$
       case "N"
-        xt = x - 1 : yt = y - 6
+        xt = xa - 1 : yt = ya - 6
       case "S"
-        xt = x + 1 : yt = y + 6
+        xt = xa + 1 : yt = ya + 6
       case "W"
-        xt = x - 6 : yt = y + 1
+        xt = xa - 6 : yt = ya + 1
       case "E"
-        xt = x + 6 : yt = y - 1
+        xt = xa + 6 : yt = ya - 1
     end select
     if m$(xt, yt) <> wc$ then
       line 393, 295, 387, 295 '6TL
@@ -965,13 +1045,13 @@ sub draw_3d_maze
 
     select case ch$
       case "N"
-        xt = x + 1 : yt = y - 6
+        xt = xa + 1 : yt = ya - 6
       case "S"
-        xt = x - 1 : yt = y + 6
+        xt = xa - 1 : yt = ya + 6
       case "W"
-        xt = x - 6 : yt = y - 1
+        xt = xa - 6 : yt = ya - 1
       case "E"
-        xt = x + 6 : yt = y + 1
+        xt = xa + 6 : yt = ya + 1
     end select    
     if m$(xt, yt) <> wc$ then
       line 407, 295, 413, 295 '6TR
@@ -983,13 +1063,13 @@ sub draw_3d_maze
   if draw$ = "Y" then
     select case ch$
       case "N"
-        xt = x - 1 : yt = y - 7
+        xt = xa - 1 : yt = ya - 7
       case "S"
-        xt = x + 1 : yt = y + 7
+        xt = xa + 1 : yt = ya + 7
       case "W"
-        xt = x - 7 : yt = y + 1
+        xt = xa - 7 : yt = ya + 1
       case "E"
-        xt = x + 7 : yt = y - 1
+        xt = xa + 7 : yt = ya - 1
     end select
     if m$(xt, yt) = wc$ then
       line 393, 295, 396, 297 '7DUL
@@ -998,13 +1078,13 @@ sub draw_3d_maze
 
     select case ch$
       case "N"
-        xt = x + 1 : yt = y - 7
+        xt = xa + 1 : yt = ya - 7
       case "S"
-        xt = x - 1 : yt = y + 7
+        xt = xa - 1 : yt = ya + 7
       case "W"
-        xt = x - 7 : yt = y - 1
+        xt = xa - 7 : yt = ya - 1
       case "E"
-        xt = x + 7 : yt = y + 1
+        xt = xa + 7 : yt = ya + 1
     end select
     if m$(xt, yt) = wc$ then
       line 407, 295, 404, 297 '7DUR
@@ -1013,13 +1093,13 @@ sub draw_3d_maze
 
     select case ch$
       case "N"
-        xt = x : yt = y - 8
+        xt = xa : yt = ya - 8
       case "S"
-        xt = x : yt = y + 8
+        xt = xa : yt = ya + 8
       case "W"
-        xt = x - 8 : yt = y
+        xt = xa - 8 : yt = ya
       case "E"
-        xt = x + 8 : yt = y
+        xt = xa + 8 : yt = ya
     end select        
     if m$(xt, yt) = "." then circle 399, 302, 1
     if m$(xt, yt) = "u" or m$(xt, yt) = "d" then 
@@ -1057,13 +1137,13 @@ sub draw_3d_maze
 
     select case ch$
       case "N"
-        xt = x - 1 : yt = y - 7
+        xt = xa - 1 : yt = ya - 7
       case "S"
-        xt = x + 1 : yt = y + 7
+        xt = xa + 1 : yt = ya + 7
       case "W"
-        xt = x - 7 : yt = y + 1
+        xt = xa - 7 : yt = ya + 1
       case "E"
-        xt = x + 7 : yt = y - 1
+        xt = xa + 7 : yt = ya - 1
     end select
     if m$(xt, yt) <> wc$ then
       line 396, 297, 393, 297 '7TL
@@ -1072,13 +1152,13 @@ sub draw_3d_maze
 
     select case ch$
       case "N"
-        xt = x + 1 : yt = y - 7
+        xt = xa + 1 : yt = ya - 7
       case "S"
-        xt = x - 1 : yt = y + 7
+        xt = xa - 1 : yt = ya + 7
       case "W"
-        xt = x - 7 : yt = y - 1
+        xt = xa - 7 : yt = ya - 1
       case "E"
-        xt = x + 7 : yt = y + 1
+        xt = xa + 7 : yt = ya + 1
     end select    
     if m$(xt, yt) <> wc$ then
       line 404, 297, 407, 297 '7TR
@@ -1090,13 +1170,13 @@ sub draw_3d_maze
   if draw$ = "Y" then
     select case ch$
       case "N"
-        xt = x - 1 : yt = y - 8
+        xt = xa - 1 : yt = ya - 8
       case "S"
-        xt = x + 1 : yt = y + 8
+        xt = xa + 1 : yt = ya + 8
       case "W"
-        xt = x - 8 : yt = y + 1
+        xt = xa - 8 : yt = ya + 1
       case "E"
-        xt = x + 8 : yt = y - 1
+        xt = xa + 8 : yt = ya - 1
     end select
     if m$(xt, yt) = wc$ then
       line 396, 297, 398, 299 '8DUL
@@ -1105,13 +1185,13 @@ sub draw_3d_maze
 
     select case ch$
       case "N"
-        xt = x + 1 : yt = y - 8
+        xt = xa + 1 : yt = ya - 8
       case "S"
-        xt = x - 1 : yt = y + 8
+        xt = xa - 1 : yt = ya + 8
       case "W"
-        xt = x - 8 : yt = y - 1
+        xt = xa - 8 : yt = ya - 1
       case "E"
-        xt = x + 8 : yt = y + 1
+        xt = xa + 8 : yt = ya + 1
     end select
     if m$(xt, yt) = wc$ then
       line 404, 297, 402, 299 '8DUR 
@@ -1120,13 +1200,13 @@ sub draw_3d_maze
 
     select case ch$
       case "N"
-        xt = x : yt = y - 9
+        xt = xa : yt = ya - 9
       case "S"
-        xt = x : yt = y + 9
+        xt = xa : yt = ya + 9
       case "W"
-        xt = x - 9 : yt = y
+        xt = xa - 9 : yt = ya
       case "E"
-        xt = x + 9 : yt = y
+        xt = xa + 9 : yt = ya
     end select        
     if m$(xt, yt) = "." then circle 399, 301, 1
     if m$(xt, yt) = "u" or m$(xt, yt) = "d" then 
@@ -1164,13 +1244,13 @@ sub draw_3d_maze
 
     select case ch$
       case "N"
-        xt = x - 1 : yt = y - 8
+        xt = xa - 1 : yt = ya - 8
       case "S"
-        xt = x + 1 : yt = y + 8
+        xt = xa + 1 : yt = ya + 8
       case "W"
-        xt = x - 8 : yt = y + 1
+        xt = xa - 8 : yt = ya + 1
       case "E"
-        xt = x + 8 : yt = y - 1
+        xt = xa + 8 : yt = ya - 1
     end select
     if m$(xt, yt) <> wc$ then
       line 398, 299, 396, 299 '8TL
@@ -1179,13 +1259,13 @@ sub draw_3d_maze
 
     select case ch$
       case "N"
-        xt = x + 1 : yt = y - 8
+        xt = xa + 1 : yt = ya - 8
       case "S"
-        xt = x - 1 : yt = y + 8
+        xt = xa - 1 : yt = ya + 8
       case "W"
-        xt = x - 8 : yt = y - 1
+        xt = xa - 8 : yt = ya - 1
       case "E"
-        xt = x + 8 : yt = y + 1
+        xt = xa + 8 : yt = ya + 1
     end select    
     if m$(xt, yt) <> wc$ then
       line 402, 299, 404, 299 '8TR
